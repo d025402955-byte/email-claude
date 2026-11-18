@@ -1,0 +1,14 @@
+[Unit]
+Description=Email to Claude bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/email-claude
+ExecStart=/usr/bin/python3 /opt/email-claude/email_bot.py
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
