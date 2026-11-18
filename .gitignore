@@ -1,3 +1,5 @@
 .env
 bot.log
+state.json
+state.lock
 __pycache__/

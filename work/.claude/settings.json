@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /opt/email-claude/stop_hook.py"
+          }
+        ]
+      }
+    ]
+  }
+}

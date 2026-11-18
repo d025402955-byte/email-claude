@@ -1,14 +1,19 @@
 [Unit]
-Description=Email to Claude bot
+Description=Email to Claude (subscription) bot
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
+User=root
+Environment=HOME=/root
+Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
 WorkingDirectory=/opt/email-claude
 ExecStart=/usr/bin/python3 /opt/email-claude/email_bot.py
 Restart=always
 RestartSec=30
+# כדי שהשיחות של Claude (ב-tmux) לא ייסגרו כשמפעילים את הבוט מחדש
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target
