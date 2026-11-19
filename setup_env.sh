@@ -5,11 +5,13 @@ cd /opt/email-claude
 chmod 600 .env
 
 set_value() {
-  local key="$1" val="$2"
-  val="${val//[$'\r\n']/}"
-  grep -v "^${key}=" .env > .env.tmp
-  echo "${key}=${val}" >> .env.tmp
-  mv .env.tmp .env
+  KEY="$1" VAL="$2" python3 - <<'PY'
+import os
+key, val = os.environ["KEY"], os.environ["VAL"].replace("\r", "").replace("\n", "")
+lines = open(".env", encoding="utf-8", errors="replace").read().splitlines()
+lines = [l for l in lines if not l.startswith(key + "=")] + [f"{key}={val}"]
+open(".env", "w", encoding="utf-8").write("\n".join(lines) + "\n")
+PY
   chmod 600 .env
 }
 
