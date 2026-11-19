@@ -14,6 +14,13 @@ fi
 if [ ! -f .env ]; then
   cp .env.example .env
   chmod 600 .env
+if ! grep -q "^ADMIN_PASSWORD=." .env; then
+  echo ""
+  echo ">>> חסרה סיסמה לדף הניהול. פתח את הקובץ ומלא את ADMIN_PASSWORD:"
+  echo "    nano /opt/email-claude/.env"
+  echo ">>> ואחר כך הרץ שוב: bash install.sh"
+  exit 0
+fi
   echo ""
   echo ">>> הצעד הבא: מלא את הפרטים בקובץ ההגדרות:"
   echo "    nano /opt/email-claude/.env"
@@ -31,11 +38,13 @@ if [ ! -f /root/.claude/.credentials.json ]; then
   exit 0
 fi
 
-cp email-claude.service /etc/systemd/system/
+cp email-claude.service email-claude-admin.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable email-claude >/dev/null 2>&1
-systemctl restart email-claude
+systemctl enable email-claude email-claude-admin >/dev/null 2>&1
+systemctl restart email-claude email-claude-admin
+PORT=$(grep "^ADMIN_PORT=" .env | cut -d= -f2); PORT=${PORT:-8090}
+command -v ufw >/dev/null && ufw status | grep -q active && ufw allow "$PORT"/tcp >/dev/null
 sleep 3
-systemctl --no-pager status email-claude | head -n 8
 echo ""
-echo "== הבוט רץ! לצפייה ביומן: tail -f /opt/email-claude/bot.log =="
+systemctl is-active --quiet email-claude && echo "✔ בוט המייל רץ" || echo "✘ בוט המייל לא רץ - בדוק: tail /opt/email-claude/bot.log"
+systemctl is-active --quiet email-claude-admin && echo "✔ דף הניהול רץ: http://$(hostname -I | awk '{print $1}'):$PORT" || echo "✘ דף הניהול לא רץ - בדוק: tail /opt/email-claude/bot.log"

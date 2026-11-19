@@ -11,19 +11,15 @@
 
 import email
 import email.utils
-import hashlib
 import imaplib
-import os
 import re
-import shlex
-import subprocess
 import sys
-import tempfile
 import time
 from email.header import decode_header, make_header
 
 import common
-from common import cfg, state
+import sessions
+from common import state
 
 log = common.get_logger("bot")
 
@@ -100,48 +96,6 @@ def thread_key(subject):
     return s.strip() or "(ללא נושא)"
 
 
-# ---------- tmux + Claude ----------
-def tmux(*args, check=True):
-    return subprocess.run(["tmux", *args], capture_output=True, text=True, check=check)
-
-
-def tmux_alive(name):
-    return tmux("has-session", "-t", name, check=False).returncode == 0
-
-
-def start_session(key, thread):
-    """פותח (או מחזיר לחיים) שיחה עם Remote Control, בשם של נושא המייל."""
-    name = thread["tmux"]
-    cmd = [common.CLAUDE_BIN]
-    if thread.get("session_id"):
-        cmd += ["--resume", thread["session_id"]]
-    cmd += ["--remote-control", thread["title"]]
-    log.info("פותח שיחה '%s' (tmux: %s)", thread["title"], name)
-    tmux(
-        "new-session", "-d", "-s", name, "-x", "200", "-y", "50",
-        "-e", f"EMAIL_THREAD={key}",
-        "-c", common.WORK_DIR,
-        " ".join(shlex.quote(c) for c in cmd),
-    )
-    time.sleep(int(cfg("STARTUP_WAIT_SECONDS", "15")))
-    if not tmux_alive(name):
-        raise RuntimeError("Claude Code לא עלה. הרץ ידנית: claude בתיקייה work ובדוק שאתה מחובר")
-
-
-def send_to_claude(name, text):
-    """מדביק את השאלה בחלון של Claude ולוחץ Enter."""
-    with tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8") as f:
-        f.write(text)
-        path = f.name
-    try:
-        tmux("load-buffer", "-b", "emailq", path)
-        tmux("paste-buffer", "-p", "-d", "-b", "emailq", "-t", name)
-        time.sleep(1.5)
-        tmux("send-keys", "-t", name, "Enter")
-    finally:
-        os.unlink(path)
-
-
 # ---------- בדיקת התיבה ----------
 def handle_message(msg):
     sender = email.utils.parseaddr(msg.get("From", ""))[1].lower()
@@ -151,11 +105,6 @@ def handle_message(msg):
     log.info("שאלה חדשה מ-%s, נושא: %s", sender, subject)
 
     with state() as st:
-        thread = st["threads"].get(key)
-        if not thread:
-            h = hashlib.md5(key.encode("utf-8")).hexdigest()[:8]
-            thread = {"tmux": f"mail-{h}", "title": f"📧 {key}", "session_id": None}
-            st["threads"][key] = thread
         st["pending"].setdefault(key, []).append({
             "to": sender,
             "subject": subject,
@@ -163,11 +112,9 @@ def handle_message(msg):
             "references": msg.get("References", ""),
             "time": time.time(),
         })
-
-    if not tmux_alive(thread["tmux"]):
-        start_session(key, thread)
-    send_to_claude(thread["tmux"], f"[שאלה שהגיעה במייל]\n{question}")
-    log.info("השאלה נשלחה לשיחה '%s'", thread["title"])
+    sessions.get_or_create_thread(key)
+    sessions.send(key, f"{sessions.EMAIL_MARK}\n{question}")
+    log.info("השאלה נשלחה לשיחה '%s'", key)
 
 
 def check_inbox():
