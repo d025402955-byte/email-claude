@@ -17,13 +17,13 @@ if [ ! -f .env ]; then
 if ! grep -q "^ADMIN_PASSWORD=." .env; then
   echo ""
   echo ">>> חסרה סיסמה לדף הניהול. פתח את הקובץ ומלא את ADMIN_PASSWORD:"
-  echo "    nano /opt/email-claude/.env"
+  echo "    bash setup_env.sh"
   echo ">>> ואחר כך הרץ שוב: bash install.sh"
   exit 0
 fi
   echo ""
   echo ">>> הצעד הבא: מלא את הפרטים בקובץ ההגדרות:"
-  echo "    nano /opt/email-claude/.env"
+  echo "    bash setup_env.sh"
   echo ">>> ואחר כך הרץ שוב: bash install.sh"
   exit 0
 fi
