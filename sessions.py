@@ -19,6 +19,7 @@ _lock = threading.Lock()
 
 EMAIL_MARK = "[שאלה שהגיעה במייל]"
 WEB_MARK = "[הודעה מדף הניהול]"
+PHONE_MARK = "[שאלה בטלפון]"
 
 
 def tmux(*args, check=True):
@@ -29,13 +30,13 @@ def tmux_alive(name):
     return tmux("has-session", "-t", name, check=False).returncode == 0
 
 
-def get_or_create_thread(key):
+def get_or_create_thread(key, title=None):
     """מחזיר את פרטי השיחה של נושא מסוים, ויוצר רשומה אם אין."""
     with state() as st:
         thread = st["threads"].get(key)
         if not thread:
             h = hashlib.md5(key.encode("utf-8")).hexdigest()[:8]
-            thread = {"tmux": f"mail-{h}", "title": f"📧 {key}", "session_id": None,
+            thread = {"tmux": f"mail-{h}", "title": title or f"📧 {key}", "session_id": None,
                       "created": time.time()}
             st["threads"][key] = thread
         return dict(thread)
@@ -136,6 +137,9 @@ def read_messages(session_id, limit=200):
                     source, text = "email", text[len(EMAIL_MARK):].strip()
                 elif text.startswith(WEB_MARK):
                     source, text = "admin", text[len(WEB_MARK):].strip()
+                elif text.startswith(PHONE_MARK):
+                    source = "phone"
+                    text = text[len(PHONE_MARK):].split(chr(10) * 2 + "(התשובה תוקרא")[0].strip()
             # תשובה אחת של Claude יכולה להתפצל לכמה שורות - מאחדים
             if kind == "assistant" and msgs and msgs[-1]["role"] == "assistant":
                 msgs[-1]["text"] += "\n\n" + text

@@ -204,7 +204,7 @@ APP_HTML = r"""<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf
 </div>
 <script>
 let cur=null, isNew=false, lastCount=-1;
-const SRC={email:'📧 מהמייל',admin:'🖥️ מדף הניהול',site:'🌐 מהאתר / האפליקציה'};
+const SRC={email:'📧 מהמייל',admin:'🖥️ מדף הניהול',site:'🌐 מהאתר / האפליקציה',phone:'📞 מהטלפון'};
 function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
 function ago(t){if(!t)return'';const d=(Date.now()/1000-t);if(d<60)return'עכשיו';if(d<3600)return'לפני '+Math.round(d/60)+' דק׳';if(d<86400)return'לפני '+Math.round(d/3600)+' שעות';return new Date(t*1000).toLocaleDateString('he-IL')}
 async function api(p,b){const r=await fetch(p,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{});if(r.status==401){location='login';throw 0}return r.json()}
@@ -216,7 +216,7 @@ async function loadList(){
 }
 function openThread(k){cur=k;isNew=false;lastCount=-1;
  document.getElementById('htitle').style.display='';document.getElementById('title').style.display='none';
- document.getElementById('htitle').textContent='📧 '+k;document.getElementById('closebtn').hidden=false;loadMsgs();loadList()}
+ document.getElementById('htitle').textContent=(k.startsWith('📞')?'':'📧 ')+k;document.getElementById('closebtn').hidden=false;loadMsgs();loadList()}
 function newThread(){cur=null;isNew=true;
  document.getElementById('htitle').style.display='none';const t=document.getElementById('title');t.style.display='block';t.value='';t.focus();
  document.getElementById('closebtn').hidden=true;document.getElementById('msgs').innerHTML='<div id="empty">כתוב נושא למעלה והודעה למטה. השיחה תופיע גם באתר ובאפליקציה, ואפשר יהיה להמשיך אותה גם במייל עם אותו נושא.</div>';document.getElementById('status').textContent=''}

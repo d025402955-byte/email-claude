@@ -49,13 +49,16 @@ if [ ! -f /root/.claude/.credentials.json ]; then
   exit 0
 fi
 
-cp email-claude.service email-claude-admin.service /etc/systemd/system/
+# שלוחת הטלפון: מחרוזת סודית לכתובת, אם חסרה
+grep -a -q "^PHONE_TOKEN=." .env || { sed -i "/^PHONE_TOKEN=/d" .env; echo "PHONE_TOKEN=$(python3 -c 'import secrets;print(secrets.token_urlsafe(18))')" >> .env; }
+cp email-claude.service email-claude-admin.service email-claude-phone.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable email-claude email-claude-admin >/dev/null 2>&1
-systemctl restart email-claude email-claude-admin
+systemctl enable email-claude email-claude-admin email-claude-phone >/dev/null 2>&1
+systemctl restart email-claude email-claude-admin email-claude-phone
 PORT=$(grep -a "^ADMIN_PORT=" .env | cut -d= -f2); PORT=${PORT:-8090}
 command -v ufw >/dev/null && ufw status | grep -q active && ufw allow "$PORT"/tcp >/dev/null
 sleep 3
 echo ""
 systemctl is-active --quiet email-claude && echo "✔ בוט המייל רץ" || echo "✘ בוט המייל לא רץ - בדוק: tail /opt/email-claude/bot.log"
 systemctl is-active --quiet email-claude-admin && echo "✔ דף הניהול רץ: http://$(hostname -I | awk '{print $1}'):$PORT" || echo "✘ דף הניהול לא רץ - בדוק: tail /opt/email-claude/bot.log"
+systemctl is-active --quiet email-claude-phone && echo "✔ שלוחת הטלפון רצה. הכתובת לשלוחת API בטכנוליין: https://<השרת>/claude-phone/$(grep -a '^PHONE_TOKEN=' .env | cut -d= -f2)" || echo "✘ שלוחת הטלפון לא רצה - בדוק: tail /opt/email-claude/bot.log"

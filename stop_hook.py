@@ -62,6 +62,11 @@ def main():
         return  # המשכת את השיחה מהאתר - אין מה לשלוח במייל
 
     answer = last_assistant_text(data) or "Claude סיים בלי טקסט תשובה. אפשר לראות את השיחה באתר."
+    if item.get("phone"):  # שאלה מהטלפון: phone.py מקריא את התשובה
+        with state() as st:
+            st.setdefault("phone_answers", {})[item["phone"]] = answer
+        log.info("תשובה לשאלה בטלפון מוכנה (%s)", key)
+        return
     try:
         common.send_email(item["to"], item["subject"], answer,
                           item.get("message_id"), item.get("references"))
