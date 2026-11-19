@@ -98,7 +98,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.logged_in():
             if url.path.startswith("/api/"):
                 return self.json({"error": "צריך להתחבר"}, 401)
-            return self.reply(302, "", headers={"Location": "/login"})
+            return self.reply(302, "", headers={"Location": "login"})
         if url.path == "/":
             return self.reply(200, APP_HTML, "text/html; charset=utf-8")
         if url.path == "/api/threads":
@@ -124,11 +124,11 @@ class Handler(BaseHTTPRequestHandler):
             data = self.body()
             if hmac.compare_digest(data.get("password", ""), PASSWORD):
                 return self.reply(302, "", headers={
-                    "Location": "/",
+                    "Location": "./",
                     "Set-Cookie": f"auth={TOKEN}; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000",
                 })
             time.sleep(2)  # האטה מול ניחוש סיסמאות
-            return self.reply(302, "", headers={"Location": "/login?bad=1"})
+            return self.reply(302, "", headers={"Location": "login?bad=1"})
         if not self.logged_in():
             return self.json({"error": "צריך להתחבר"}, 401)
         data = self.body()
@@ -158,7 +158,7 @@ form{background:#fff;padding:32px;border-radius:12px;box-shadow:0 2px 12px #0001
 h1{font-size:20px;margin:0 0 16px}input{width:100%;box-sizing:border-box;padding:10px;font-size:16px;margin-bottom:12px;border:1px solid #ccc;border-radius:8px}
 button{width:100%;padding:10px;font-size:16px;background:#c96442;color:#fff;border:0;border-radius:8px;cursor:pointer}
 .bad{color:#b00;font-size:14px;margin-bottom:8px}</style></head><body>
-<form method="post" action="/login"><h1>📧 Claude במייל - ניהול</h1>
+<form method="post" action="login"><h1>📧 Claude במייל - ניהול</h1>
 <div class="bad" id="bad" hidden>סיסמה שגויה</div>
 <input type="password" name="password" placeholder="סיסמה" autofocus>
 <button>כניסה</button></form>
@@ -207,9 +207,9 @@ let cur=null, isNew=false, lastCount=-1;
 const SRC={email:'📧 מהמייל',admin:'🖥️ מדף הניהול',site:'🌐 מהאתר / האפליקציה'};
 function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
 function ago(t){if(!t)return'';const d=(Date.now()/1000-t);if(d<60)return'עכשיו';if(d<3600)return'לפני '+Math.round(d/60)+' דק׳';if(d<86400)return'לפני '+Math.round(d/3600)+' שעות';return new Date(t*1000).toLocaleDateString('he-IL')}
-async function api(p,b){const r=await fetch(p,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{});if(r.status==401){location='/login';throw 0}return r.json()}
+async function api(p,b){const r=await fetch(p,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{});if(r.status==401){location='login';throw 0}return r.json()}
 async function loadList(){
- const th=await api('/api/threads');
+ const th=await api('api/threads');
  document.getElementById('list').innerHTML=th.map(t=>`<div class="th ${t.key===cur?'sel':''}" onclick='openThread(${JSON.stringify(t.key)})'>
   <div class="t"><span class="dot ${t.alive?'on':''}"></span>${esc(t.title)}</div>
   <div class="s">${t.alive?'פתוחה בשרת':'סגורה בשרת'} · ${ago(t.updated)}${t.waiting_email?' · ממתין לתשובה במייל':''}</div></div>`).join('')||'<div class="th"><div class="s">אין עדיין שיחות</div></div>';
@@ -221,7 +221,7 @@ function newThread(){cur=null;isNew=true;
  document.getElementById('htitle').style.display='none';const t=document.getElementById('title');t.style.display='block';t.value='';t.focus();
  document.getElementById('closebtn').hidden=true;document.getElementById('msgs').innerHTML='<div id="empty">כתוב נושא למעלה והודעה למטה. השיחה תופיע גם באתר ובאפליקציה, ואפשר יהיה להמשיך אותה גם במייל עם אותו נושא.</div>';document.getElementById('status').textContent=''}
 async function loadMsgs(){
- if(!cur)return;const d=await api('/api/messages?key='+encodeURIComponent(cur));
+ if(!cur)return;const d=await api('api/messages?key='+encodeURIComponent(cur));
  const box=document.getElementById('msgs');
  if(d.messages.length!==lastCount){
   box.innerHTML=d.messages.map(m=>`<div class="m ${m.role}">${m.role=='user'?`<div class="src">${SRC[m.source]}</div>`:''}${esc(m.text)}</div>`).join('')||'<div id="empty">עדיין אין הודעות. השיחה נפתחת בשרת, זה לוקח כמה שניות...</div>';
@@ -231,10 +231,10 @@ async function loadMsgs(){
 }
 async function send(e){e.preventDefault();const ta=document.getElementById('text');const text=ta.value.trim();if(!text)return;
  if(isNew){const title=document.getElementById('title').value.trim();if(!title){alert('צריך לכתוב נושא');return}
-  const r=await api('/api/new',{title,text});if(r.error){alert(r.error);return}ta.value='';openThread(r.key)}
- else if(cur){const r=await api('/api/send',{key:cur,text});if(r.error){alert(r.error);return}ta.value='';}
+  const r=await api('api/new',{title,text});if(r.error){alert(r.error);return}ta.value='';openThread(r.key)}
+ else if(cur){const r=await api('api/send',{key:cur,text});if(r.error){alert(r.error);return}ta.value='';}
  document.getElementById('status').textContent='שולח ל-Claude...';}
-async function closeThread(){if(cur&&confirm('לסגור את השיחה בשרת? היא לא תימחק, ותיפתח שוב בהודעה הבאה.')){await api('/api/close',{key:cur});loadList();loadMsgs()}}
+async function closeThread(){if(cur&&confirm('לסגור את השיחה בשרת? היא לא תימחק, ותיפתח שוב בהודעה הבאה.')){await api('api/close',{key:cur});loadList();loadMsgs()}}
 document.getElementById('text').addEventListener('keydown',e=>{if(e.key=='Enter'&&(e.ctrlKey||e.metaKey))send(e)});
 loadList();setInterval(loadList,10000);setInterval(loadMsgs,3000);
 </script></body></html>"""
